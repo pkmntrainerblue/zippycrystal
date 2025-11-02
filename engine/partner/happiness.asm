@@ -4,48 +4,62 @@
 ;   Output: hScriptVar = happiness (0 if not found)
 ;=====================================================================
 GetPartnerPikachuHappiness:
-	ld hl, wPartyMon1Species
-	ld de, PARTYMON_STRUCT_LENGTH
-	ld b, PARTY_LENGTH
+    ld hl, wPartyMon1Species
+    ld de, PARTYMON_STRUCT_LENGTH    ; 48
+    ld b, PARTY_LENGTH               ; 6
 
 .loop
-	ld a, [hl]                      ; load species byte
-	and a
-	jr z, .next                     ; empty slot
+    ; --- Skip empty ---
+    ld a, [hl]
+    and a
+    jr z, .next
 
-	cp EGG
-	jr z, .next                     ; egg
+    ; --- Skip egg ---
+    cp EGG
+    jr z, .next
 
-	ld c, a                         ; c = species low byte
-	ld a, [wNamedObjectIndex + 1]   ; wait no, load form
-	push hl
-	ld bc, MON_IS_EGG - MON_SPECIES ; offset to form/egg byte
-	add hl, bc
-	ld a, [hl]                      ; a = form byte
-	pop hl
+    ; --- Must be PIKACHU ---
+    cp PIKACHU
+    jr nz, .next
 
-	ld b, a                         ; b = form
-	
-	; combine: full index = (form & 0x80) | species
-	and %10000000                   ; bit 7 (9th bit for >254)
-	or c                            ; OR species low
-	cp PIKACHU_PARTNER_FORM         ; single check!
-	jr nz, .next
+    ; --- Get form byte ---
+    push hl
+    ld bc, MON_FORM                  ; 35
+    add hl, bc
+    ld a, [hl]                       ; form byte
+    pop hl
 
-	; --- Found! Get happiness ---
-	push hl
-	ld bc, MON_HAPPINESS - MON_IS_EGG
-	add hl, bc
-	ld a, [hl]
-	ldh [hScriptVar], a
-	pop hl
-	ret                             ; success
+    ; --- Check if extended species (bit 7 set) ---
+    and EXTSPECIES_MASK
+    jr z, .next                      ; not extended → not partner
+
+    ; --- Combine: (form & %10000000) | species ---
+    push hl
+    ld bc, MON_FORM
+    add hl, bc
+    ld a, [hl]                       ; form
+    and %10000000
+    ld c, a
+    pop hl
+    ld a, [hl]                       ; species low
+    or c
+    cp PIKACHU_PARTNER_FORM          ; $18a
+    jr nz, .next
+
+    ; --- Found! Get happiness ---
+    push hl
+    ld bc, MON_HAPPINESS             ; 15
+    add hl, bc
+    ld a, [hl]
+    ldh [hScriptVar], a
+    pop hl
+    ret
 
 .next
-	add hl, de
-	dec b
-	jr nz, .loop
+    add hl, de
+    dec b
+    jr nz, .loop
 
-	xor a
-	ldh [hScriptVar], a
-	ret
+    xor a
+    ldh [hScriptVar], a
+    ret
