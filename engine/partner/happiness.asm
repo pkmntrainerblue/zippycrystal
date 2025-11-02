@@ -5,7 +5,7 @@ GetPartnerPikachuHappiness:
 
 	ld hl, wPartyMon1Species
 	ld de, PARTYMON_STRUCT_LENGTH
-	ld b, PARTY_SIZE  ; 6
+	ld b, PARTY_LENGTH ; 6
 
 .loop
 	ld a, [hl]        ; species
