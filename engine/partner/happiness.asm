@@ -1,64 +1,59 @@
+;=====================================================================
+; GetPartnerPikachuHappiness
+;   Returns happiness of first Partner Pikachu (form = 6) in party.
+;   Sets hScriptVar = happiness
+;   Copies name to Buffer3 via CopyPokemonName_Buffer1_Buffer3
+;   Returns 0 if not found
+;=====================================================================
 GetPartnerPikachuHappiness:
-; Returns happiness of the first Partner Pikachu in the party (any slot)
-; Returns 0 and copies no name if not found
-; Skips eggs
-
 	ld hl, wPartyMon1Species
 	ld de, PARTYMON_STRUCT_LENGTH
-	ld b, PARTY_LENGTH ; 6
+	ld b, PARTY_LENGTH
 
 .loop
-	ld a, [hl]        ; species
-	and a             ; 0 = empty slot
-	jr z, .next_slot
+	ld a, [hl]                  ; species
+	and a
+	jr z, .next                 ; empty
 	cp EGG
-	jr z, .next_slot
+	jr z, .next                 ; egg
 
-	; Check if it's PIKACHU
 	cp PIKACHU
-	jr nz, .next_slot
+	jr nz, .next
 
-	; Save species for name
-	ld [wNamedObjectIndex], a
-
-	; Load form byte
+	; --- Check form (same byte as egg flag) ---
+	ld bc, MON_IS_EGG - MON_SPECIES  ; = 35
 	push hl
-	ld bc, MON_FORM - MON_SPECIES
 	add hl, bc
 	ld a, [hl]
-	ld [wNamedObjectIndex+1], a
 	pop hl
 
-	; Check if form == PARTNER_FORM (6)
-	cp PARTNER_FORM
-	jr nz, .next_slot
+	cp PARTNER_FORM             ; 6
+	jr nz, .next
 
-	; It's Partner Pikachu! Now check egg flag
+	; --- Not egg (form != 1), already checked species != EGG ---
+	; --- Read happiness ---
+	ld bc, MON_HAPPINESS - MON_IS_EGG  ; = 15 - 35 = -20
 	push hl
-	ld bc, MON_IS_EGG - MON_FORM
-	add hl, bc
-	bit MON_IS_EGG_F, [hl]
-	pop hl
-	jr nz, .next_slot  ; eggs don't have happiness
-
-	; Load happiness
-	push hl
-	ld bc, MON_HAPPINESS - MON_IS_EGG
 	add hl, bc
 	ld a, [hl]
 	ldh [hScriptVar], a
 	pop hl
 
-	; Success: copy name and exit
+	; --- Set up name (species + form) ---
+	ld a, PIKACHU
+	ld [wNamedObjectIndex], a
+	ld a, PARTNER_FORM
+	ld [wNamedObjectIndex+1], a
+
 	call GetPokemonName
 	farjp CopyPokemonName_Buffer1_Buffer3
 
-.next_slot
-	add hl, de        ; next mon
+.next
+	add hl, de
 	dec b
 	jr nz, .loop
 
-	; Not found: return 0
+	; --- Not found ---
 	xor a
 	ldh [hScriptVar], a
 	ret
