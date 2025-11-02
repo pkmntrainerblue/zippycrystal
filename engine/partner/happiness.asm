@@ -1,52 +1,45 @@
 ;=====================================================================
 ; GetPartnerPikachuHappiness
-;   Returns happiness of first Partner Pikachu (form = 6) in party.
-;   Sets hScriptVar = happiness
-;   Copies name to Buffer3 via CopyPokemonName_Buffer1_Buffer3
-;   Returns 0 if not found
+;   Returns happiness of first Partner Pikachu in party.
+;   Output: hScriptVar = happiness (0 if not found)
 ;=====================================================================
 GetPartnerPikachuHappiness:
 	ld hl, wPartyMon1Species
-	ld de, PARTYMON_STRUCT_LENGTH
-	ld b, PARTY_LENGTH
+	ld de, PARTYMON_STRUCT_LENGTH    ; 48
+	ld b, PARTY_LENGTH               ; 6
 
 .loop
-	ld a, [hl]                  ; species
+	; --- Skip empty slot ---
+	ld a, [hl]
 	and a
-	jr z, .next                 ; empty
-	cp EGG
-	jr z, .next                 ; egg
+	jr z, .next
 
+	; --- Skip egg ---
+	cp EGG
+	jr z, .next
+
+	; --- Must be PIKACHU ---
 	cp PIKACHU
 	jr nz, .next
 
-	; --- Check form (same byte as egg flag) ---
-	ld bc, MON_IS_EGG - MON_SPECIES  ; = 35
+	; --- Check form byte (offset 35) ---
 	push hl
+	ld bc, MON_FORM                  ; 35
 	add hl, bc
 	ld a, [hl]
 	pop hl
 
-	cp PARTNER_FORM             ; 6
+	cp PARTNER_FORM                  ; 6
 	jr nz, .next
 
-	; --- Not egg (form != 1), already checked species != EGG ---
-	; --- Read happiness ---
-	ld bc, MON_HAPPINESS - MON_IS_EGG  ; = 15 - 35 = -20
+	; --- Found Partner Pikachu! Get happiness (offset 15) ---
 	push hl
+	ld bc, MON_HAPPINESS             ; 15
 	add hl, bc
 	ld a, [hl]
 	ldh [hScriptVar], a
 	pop hl
-
-	; --- Set up name (species + form) ---
-	ld a, PIKACHU
-	ld [wNamedObjectIndex], a
-	ld a, PARTNER_FORM
-	ld [wNamedObjectIndex+1], a
-
-	call GetPokemonName
-	farjp CopyPokemonName_Buffer1_Buffer3
+	ret                              ; SUCCESS
 
 .next
 	add hl, de
