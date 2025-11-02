@@ -770,3 +770,4 @@ SECTION "Following", ROMX
 
 INCLUDE "gfx/following_sprite_pointers.asm"
 INCLUDE "engine/events/follower.asm"
+INCLUDE "engine/partner/happiness.asm"
