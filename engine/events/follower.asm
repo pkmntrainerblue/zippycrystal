@@ -3,7 +3,7 @@ SECTION "Follower Script", ROMX
 FollowerScript::
 	faceplayer
 	cry PIKACHU
-    special GetPartnerPikachuHappiness
+    special GetFirstPokemonHappiness
 	ifgreater $f9, .AdoresYou
 	ifgreater $c7, .ReallyTrustsYou
 	ifgreater $95, .HappyWithYou
