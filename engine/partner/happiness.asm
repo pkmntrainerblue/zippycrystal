@@ -1,52 +1,51 @@
 ;=====================================================================
 ; GetPartnerPikachuHappiness
-;   Returns happiness of first Partner Pikachu in party.
+;   Returns happiness of first PIKACHU_PARTNER_FORM in party.
 ;   Output: hScriptVar = happiness (0 if not found)
 ;=====================================================================
 GetPartnerPikachuHappiness:
 	ld hl, wPartyMon1Species
-	ld de, PARTYMON_STRUCT_LENGTH    ; 48
-	ld b, PARTY_LENGTH               ; 6
+	ld de, PARTYMON_STRUCT_LENGTH
+	ld b, PARTY_LENGTH
 
 .loop
-	; --- Skip empty slot ---
-	ld a, [hl]
+	ld a, [hl]                      ; load species byte
 	and a
-	jr z, .next
+	jr z, .next                     ; empty slot
 
-	; --- Skip egg ---
 	cp EGG
-	jr z, .next
+	jr z, .next                     ; egg
 
-	; --- Must be PIKACHU ---
-	cp PIKACHU
-	jr nz, .next
-
-	; --- Check form byte (offset 35) ---
+	ld c, a                         ; c = species low byte
+	ld a, [wNamedObjectIndex + 1]   ; wait no, load form
 	push hl
-	ld bc, MON_FORM                  ; 35
+	ld bc, MON_IS_EGG - MON_SPECIES ; offset to form/egg byte
 	add hl, bc
-	ld a, [hl]
+	ld a, [hl]                      ; a = form byte
 	pop hl
 
-	cp PARTNER_FORM                  ; 6
+	ld b, a                         ; b = form
+	
+	; combine: full index = (form & 0x80) | species
+	and %10000000                   ; bit 7 (9th bit for >254)
+	or c                            ; OR species low
+	cp PIKACHU_PARTNER_FORM         ; single check!
 	jr nz, .next
 
-	; --- Found Partner Pikachu! Get happiness (offset 15) ---
+	; --- Found! Get happiness ---
 	push hl
-	ld bc, MON_HAPPINESS             ; 15
+	ld bc, MON_HAPPINESS - MON_IS_EGG
 	add hl, bc
 	ld a, [hl]
 	ldh [hScriptVar], a
 	pop hl
-	ret                              ; SUCCESS
+	ret                             ; success
 
 .next
 	add hl, de
 	dec b
 	jr nz, .loop
 
-	; --- Not found ---
 	xor a
 	ldh [hScriptVar], a
 	ret
